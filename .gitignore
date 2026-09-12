@@ -1,0 +1,6 @@
+node_modules/
+.data/
+.agent/
+.devin/
+.DS_Store
+Thumbs.db

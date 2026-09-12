@@ -1,0 +1,13 @@
+{
+  "name": "sentinela-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.15.0 <25" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node server/index.ts",
+    "dev": "node scripts/build.mjs && node server/index.ts",
+    "test": "node --test tests/model.test.ts tests/server.test.ts tests/fixtures.test.ts tests/e2e.test.ts"
+  }
+}

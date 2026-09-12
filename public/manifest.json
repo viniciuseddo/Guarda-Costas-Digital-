@@ -1,0 +1,17 @@
+{
+  "name": "Sentinela (Demo)",
+  "short_name": "Sentinela",
+  "description": "Demonstração de proteção em trajeto e resposta sincronizada para Android",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1b4d3e",
+  "icons": [
+    {
+      "src": "/assets/foto-1.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

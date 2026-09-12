@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1b4d3e">
+  <meta name="description" content="Sentinela - Demonstração mock-first de proteção em trajeto e resposta sincronizada">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Sentinela (Demo)</title>
+</head>
+<body>
+
+  <!-- Barra Superior -->
+  <header class="app-header">
+    <div class="brand-title">
+      <span>🛡️ Sentinela</span>
+      <span class="badge-demo">Demonstração</span>
+    </div>
+    <div class="header-meta">
+      <span id="label-role" style="font-weight: bold; font-size: 0.8rem;"></span>
+      <span id="conn-indicator" class="conn-status conn-offline">Offline</span>
+      <button id="btn-toggle-demo-drawer" class="btn-secondary" style="min-height: 36px; padding: 4px 10px; font-size: 0.8rem;">
+        ⚙️ Controles
+      </button>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="main-content">
+
+    <!-- TELA 1: ENTRADA / VÍNCULO DE SALA -->
+    <section id="screen-login" class="card">
+      <h1 class="card-title">Acesso à Demonstração</h1>
+      <p style="font-size: 0.9rem; color: var(--text-muted);">
+        Esta demonstração opera em modo mock-first sincronizado entre dois aparelhos via coordenador.
+      </p>
+
+      <label>
+        Identificador da Sala
+        <input type="text" id="input-room-id" value="sala-demo" placeholder="Ex: sala-demo">
+      </label>
+
+      <label>
+        PIN de Demonstração
+        <input type="text" id="input-pin" value="1234" placeholder="1234">
+      </label>
+
+      <label>
+        Seu Nome / Aparelho
+        <input type="text" id="input-name" value="Alex" placeholder="Seu nome">
+      </label>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+        <span style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">Escolha seu papel na demo:</span>
+        <div class="btn-group">
+          <button id="btn-login-owner" class="btn btn-primary">
+            📱 Meu Trajeto (Aparelho A)
+          </button>
+          <button id="btn-login-family" class="btn btn-secondary">
+            👥 Familiar (Aparelho B)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELA 2: MEU TRAJETO (APARELHO A) -->
+    <section id="screen-owner" style="display: none; flex-direction: column; gap: 14px;">
+
+      <!-- Setup inicial quando trajeto está idle -->
+      <div id="owner-setup-panel" class="card">
+        <h2 class="card-title">Preparar Trajeto</h2>
+        <label>
+          Destino planejado
+          <input type="text" id="input-destination" value="Portaria Principal (demo)" readonly>
+        </label>
+        <label>
+          Familiar conectado
+          <input type="text" id="input-family-name" value="Mariana (Familiar)" readonly>
+        </label>
+        <label>
+          Modo de proteção
+          <select id="select-mode">
+            <option value="discreet">Modo Discreto (Silencioso - Padrão)</option>
+            <option value="sound">Modo Sonoro (Sirene em ensaio autorizado)</option>
+          </select>
+        </label>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">
+          * O modo sonoro aciona sirene local de até 5s em caso de alerta não cancelado.
+        </p>
+        <button id="btn-start-journey" class="btn btn-success btn-block" style="font-size: 1.1rem;">
+          ▶️ Iniciar Trajeto Protegido
+        </button>
+      </div>
+
+      <!-- Banner de Checagem (Falso alarme / Vencimento) -->
+      <div id="owner-checking-banner" class="alert-banner warning" style="display: none;">
+        <div class="alert-title">⚠️ Checagem Sentinela: <span id="checking-reason">Indício detectado</span></div>
+        <p style="font-size: 0.95rem;">
+          Você está bem? Se não responder em <strong id="checking-countdown" style="font-size: 1.2rem;">10s</strong>, o familiar será alertado automaticamente.
+        </p>
+        <div class="btn-group" style="margin-top: 6px;">
+          <button id="btn-owner-safe" class="btn btn-success">
+            ✅ Estou bem (Falso alarme)
+          </button>
+          <button id="btn-owner-checking-sos" class="btn btn-danger">
+            🚨 Pedir ajuda agora
+          </button>
+        </div>
+      </div>
+
+      <!-- Banner de Alerta Ativo -->
+      <div id="owner-alert-banner" class="alert-banner" style="display: none;">
+        <div class="alert-title">🚨 ALERTA ATIVO ENVIADO AO FAMILIAR</div>
+        <p id="owner-alert-desc" style="font-size: 0.9rem;">
+          Seu familiar recebeu o alerta e está visualizando sua localização e registros.
+        </p>
+        <div id="siren-container" style="display: none; margin-top: 6px;">
+          <button id="btn-silence-siren" class="btn btn-warning btn-block">
+            🔇 Silenciar Sirene Local (Demo)
+          </button>
+        </div>
+      </div>
+
+      <!-- Painel de Status do Trajeto -->
+      <div id="owner-active-panel" class="card" style="display: none;">
+        <div class="card-title">
+          <span>Trajeto em Andamento</span>
+          <span id="owner-journey-badge" class="badge-demo" style="background-color: #22c55e;">ATIVO</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem;">
+          <div>ETA: <strong id="owner-eta-display">01:30</strong></div>
+          <div>Prazo limite: <strong id="owner-deadline-display">01:30</strong></div>
+          <div>Bateria: <strong id="owner-battery-display">100%</strong></div>
+          <div>Sinal: <strong id="owner-signal-display">Conectado</strong></div>
+        </div>
+
+        <!-- Mapa Interativo do Campus -->
+        <div class="map-container">
+          <div id="map-owner" class="map-svg"></div>
+          <div class="map-overlay">
+            <span id="map-owner-pos">Posição: Biblioteca Central</span>
+            <span id="map-owner-age">Ao vivo</span>
+          </div>
+        </div>
+
+        <!-- Ações do Trajeto -->
+        <div class="btn-group">
+          <button id="btn-owner-arrive" class="btn btn-success">
+            🏁 Confirmar Chegada
+          </button>
+          <button id="btn-owner-extend" class="btn btn-secondary">
+            ⏱️ Estender (+50s)
+          </button>
+        </div>
+
+        <button id="btn-owner-sos" class="btn btn-danger btn-block" style="font-size: 1.15rem; min-height: 56px;">
+          🚨 SOS / PEDIR AJUDA IMEDIATA
+        </button>
+      </div>
+
+      <!-- Painel de Simulação de Sensores e IA (Mock-first) -->
+      <div id="owner-simulators-card" class="card" style="display: none;">
+        <h3 class="card-title">Simulação de Sensores e IA (Aparelho A)</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">
+          Dispare eventos mockados para demonstrar as reações do aplicativo sem depender de sensores físicos:
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+          <button id="btn-sim-impact" class="btn btn-secondary">
+            💥 Simular Queda/Impacto
+          </button>
+          <button id="btn-sim-snatch" class="btn btn-secondary">
+            🏃 Simular Arrebate
+          </button>
+          <button id="btn-sim-volume" class="btn btn-secondary">
+            🔊 Gesto 3x Volume+
+          </button>
+          <button id="btn-sim-voice" class="btn btn-secondary">
+            🗣️ Voz Suspeita
+          </button>
+          <button id="btn-sim-battery" class="btn btn-secondary">
+            🪫 Bateria Crítica (5%)
+          </button>
+          <button id="btn-sim-signal" class="btn btn-secondary">
+            📡 Perda de Sinal
+          </button>
+          <button id="btn-sim-ai-offline" class="btn btn-secondary">
+            🤖 IA Indisponível
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumo de Chegada -->
+      <div id="owner-arrived-panel" class="alert-banner safe" style="display: none;">
+        <div class="alert-title">🎉 Chegada Confirmada!</div>
+        <p>Você chegou ao seu destino em segurança. O monitoramento foi concluído e o familiar foi informado.</p>
+        <button id="btn-owner-restart" class="btn btn-secondary btn-block" style="margin-top: 8px;">
+          Nova Demonstração
+        </button>
+      </div>
+    </section>
+
+    <!-- TELA 3: FAMILIAR (APARELHO B) -->
+    <section id="screen-family" style="display: none; flex-direction: column; gap: 14px;">
+
+      <div class="card">
+        <div class="card-title">
+          <span>Acompanhamento: Alex</span>
+          <span id="family-status-badge" class="badge-demo" style="background-color: #64748b;">AGUARDANDO</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem;">
+          <div>Destino: <strong>Portaria Principal</strong></div>
+          <div>Último sinal: <strong id="family-signal-age">--</strong></div>
+          <div>Bateria remota: <strong id="family-battery-display">100%</strong></div>
+          <div>Precisão: <strong>15m (simulado)</strong></div>
+        </div>
+
+        <!-- Mapa Interativo do Familiar -->
+        <div class="map-container">
+          <div id="map-family" class="map-svg"></div>
+          <div class="map-overlay">
+            <span id="map-family-pos">Posição: Aguardando</span>
+            <span id="map-family-status">Sincronizado</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner de Alerta do Familiar -->
+      <div id="family-alert-card" class="alert-banner" style="display: none;">
+        <div class="alert-title">🚨 ALERTA RECEBIDO: <span id="family-alert-reason">Socorro</span></div>
+        <p style="font-size: 0.9rem;">
+          Horário do alerta: <strong id="family-alert-time">--</strong>
+        </p>
+
+        <div style="margin-top: 8px;">
+          <button id="btn-family-ack" class="btn btn-warning btn-block">
+            👀 Confirmar Recebimento Humano
+          </button>
+          <p id="family-ack-status" style="font-size: 0.8rem; margin-top: 4px; color: var(--safe-text); display: none;">
+            ✓ Alerta reconhecido pelo familiar humano.
+          </p>
+        </div>
+
+        <!-- Seção de Acionamento Policial Simulado (Reqs 8.1 - 8.4) -->
+        <div style="margin-top: 14px; border-top: 1px dashed var(--alert-border); padding-top: 10px;">
+          <div class="notice-simulation">
+            ⚠️ SIMULAÇÃO: Nenhuma ligação ou envio real será realizado.
+          </div>
+
+          <div id="police-actions-container" style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;">
+            <button id="btn-open-police-modal" class="btn btn-danger btn-block">
+              🚓 Simular Acionamento Policial
+            </button>
+          </div>
+
+          <!-- Card de status da chamada policial em andamento -->
+          <div id="police-status-panel" class="card" style="display: none; background-color: #f1f5f9; margin-top: 8px;">
+            <div class="card-title" style="font-size: 0.9rem;">
+              <span>Central Fictícia (DEMO)</span>
+              <strong id="police-ref-display" style="font-size: 0.8rem; color: var(--primary);">DEMO-...</strong>
+            </div>
+            <p style="font-size: 0.85rem;">Status: <strong id="police-stage-display">Iniciando...</strong></p>
+            <div class="btn-group" style="margin-top: 6px;">
+              <button id="btn-police-fail" class="btn btn-secondary" style="font-size: 0.8rem;">
+                Simular Falha
+              </button>
+              <button id="btn-police-retry" class="btn btn-secondary" style="font-size: 0.8rem;">
+                Repetir Envio
+              </button>
+              <button id="btn-police-cancel" class="btn btn-danger" style="font-size: 0.8rem;">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Galeria de Registros e Evidências -->
+      <div id="family-evidence-card" class="card">
+        <h3 class="card-title">Registros e Mídia de Contexto</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">
+          Fotos e trechos de áudio liberados progressivamente pelo sistema:
+        </p>
+        <div id="evidence-grid" class="media-grid"></div>
+
+        <!-- Player explícito de áudio ambiental -->
+        <div id="audio-player-container" style="margin-top: 10px; padding: 10px; background: var(--surface-alt); border-radius: 6px; display: none;">
+          <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px;">Áudio Ambiente (12s) - Sem Autoplay</div>
+          <audio id="demo-audio-element" src="/assets/audio-1.wav" preload="metadata" controls style="width: 100%;"></audio>
+        </div>
+      </div>
+
+      <!-- Linha do Tempo dos Alertas -->
+      <div class="card">
+        <h3 class="card-title">Linha do Tempo (Eventos Auditáveis)</h3>
+        <div id="timeline-list" class="timeline">
+          <div style="font-size: 0.85rem; color: var(--text-muted);">Aguardando início do trajeto...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAINEL DE CONTROLES DA DEMO (EXPANSÍVEL) -->
+    <section id="demo-controls-drawer" class="demo-controls-panel" style="display: none;">
+      <div class="demo-controls-title">
+        <span>⚙️ Controles do Apresentador (Demo)</span>
+        <button id="btn-close-demo-drawer" style="background: none; border: none; color: #ffffff; cursor: pointer; font-size: 1rem; min-height: 24px; min-width: 24px;">✕</button>
+      </div>
+      <div class="demo-controls-grid">
+        <button id="btn-demo-pause">⏸️ Pausar Cenário</button>
+        <button id="btn-demo-resume">▶️ Retomar</button>
+        <button id="btn-demo-step-5">⏩ Avançar +5s</button>
+        <button id="btn-demo-step-10">⏩ Avançar +10s</button>
+        <button id="btn-demo-swap-role">🔄 Inverter Papel (A ⇄ B)</button>
+        <button id="btn-demo-reset" style="background-color: #991b1b;">⚠️ Resetar Sala</button>
+      </div>
+      <div style="font-size: 0.75rem; color: #cbd5e1; text-align: center;">
+        A pausa congela contagens de cenário sem mascarar falhas reais de conexão.
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL DE VISUALIZAÇÃO DE FOTO -->
+  <div id="modal-photo" class="modal-backdrop" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-photo-title" style="font-size: 1rem;">Foto de Contexto</h3>
+        <button id="btn-close-photo-modal" class="btn-secondary" style="min-height: 36px; min-width: 36px; padding: 4px;">✕</button>
+      </div>
+      <img id="modal-photo-img" src="" alt="Foto" style="width: 100%; border-radius: 6px;">
+      <div id="modal-photo-caption" style="font-size: 0.85rem; color: var(--text-muted);"></div>
+      <div style="font-size: 0.75rem; background: var(--surface-alt); padding: 8px; border-radius: 4px;">
+        <strong>Origem:</strong> Mídia de demonstração mock-first. Sem captura invasiva de terceiros.
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE PRÉVIA DO PACOTE POLICIAL (REQS 8.1, 8.2) -->
+  <div id="modal-police-preview" class="modal-backdrop" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.05rem;">Prévia do Pacote de Contexto</h3>
+        <button id="btn-close-police-modal" class="btn-secondary" style="min-height: 36px; min-width: 36px; padding: 4px;">✕</button>
+      </div>
+
+      <div class="notice-simulation">
+        Simulação encenada. Nenhum órgão oficial será acionado.
+      </div>
+
+      <div style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px;">
+        <div><strong>Pessoa acompanhada:</strong> Alex (Fictício)</div>
+        <div><strong>Motivo do alerta:</strong> <span id="police-preview-reason">SOS</span></div>
+        <div><strong>Última posição:</strong> <span id="police-preview-pos">Passarela dos Estudantes</span></div>
+        <div><strong>Horário do evento:</strong> <span id="police-preview-time">--</span></div>
+      </div>
+
+      <div>
+        <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Selecione evidências para o envio simulado:</div>
+        <div id="police-preview-evidence-list" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;"></div>
+      </div>
+
+      <button id="btn-confirm-police-send" class="btn btn-danger btn-block">
+        📞 Confirmar Envio e Chamada Simulada
+      </button>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
