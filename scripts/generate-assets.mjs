@@ -8,10 +8,10 @@ if (!fs.existsSync(assetsDir)) {
 
 // 1. Fotos SVG ilustrativas de exemplo
 const fotos = [
-  { file: 'foto-1.svg', title: 'Fachada Próxima - Bloco 40', color: '#1b4d3e', desc: 'Edifício acadêmico iluminado' },
-  { file: 'foto-2.svg', title: 'Caminho Percorrido - Passarela', color: '#2d5a7b', desc: 'Passarela com postes de iluminação' },
-  { file: 'foto-3.svg', title: 'Pátio Central - Bancos e Jardins', color: '#3d405b', desc: 'Área aberta de pedestres' },
-  { file: 'foto-4.svg', title: 'Portaria Principal (Demo)', color: '#4a5759', desc: 'Guarita e portão de acesso' },
+  { file: 'foto-1.svg', title: 'Fachada Residencial - Rua 10', color: '#1b4d3e', desc: 'Residência iluminada no bairro' },
+  { file: 'foto-2.svg', title: 'Calçada da Av. Brasil', color: '#2d5a7b', desc: 'Calçada iluminada com postes' },
+  { file: 'foto-3.svg', title: 'Praça Central do Bairro', color: '#3d405b', desc: 'Área residencial arborizada' },
+  { file: 'foto-4.svg', title: 'Entrada do Destino Residencial', color: '#4a5759', desc: 'Portão de acesso seguro' },
 ];
 
 for (const f of fotos) {

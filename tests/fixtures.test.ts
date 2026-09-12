@@ -9,8 +9,8 @@ const start = () => command(createRun('run-fixtures'), 'owner', 'start', { mode:
 
 test('fixtures campus route and demo zones exist and have valid coordinates', () => {
   assert.equal(CAMPUS_ROUTE.length, 4);
-  assert.equal(CAMPUS_ROUTE[0].name, 'Biblioteca Central');
-  assert.equal(CAMPUS_ROUTE[3].name, 'Portaria Principal (demo)');
+  assert.equal(CAMPUS_ROUTE[0].name, 'Rua das Flores (Saída)');
+  assert.equal(CAMPUS_ROUTE[3].name, 'Destino (Residência/Metrô)');
   assert.equal(DEMO_ZONES.length, 2);
   for (const zone of DEMO_ZONES) {
     assert.ok(zone.polygon.length >= 3);

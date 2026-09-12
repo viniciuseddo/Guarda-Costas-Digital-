@@ -30,25 +30,25 @@ export interface CatalogMedia {
 }
 
 export const CAMPUS_ROUTE: CampusPoint[] = [
-  { id: 'p1', name: 'Biblioteca Central', x: 12, y: 78, description: 'Ponto de partida do trajeto monitorado' },
-  { id: 'p2', name: 'Passarela dos Estudantes', x: 38, y: 55, description: 'Corredor iluminado com câmeras fictícias' },
-  { id: 'p3', name: 'Pátio das Engenharias', x: 65, y: 40, description: 'Área aberta de transição' },
-  { id: 'p4', name: 'Portaria Principal (demo)', x: 90, y: 18, description: 'Destino final planejado' },
+  { id: 'p1', name: 'Rua das Flores (Saída)', x: 12, y: 78, description: 'Início do trajeto no bairro' },
+  { id: 'p2', name: 'Av. Brasil (Iluminada)', x: 38, y: 55, description: 'Avenida principal com comércio' },
+  { id: 'p3', name: 'Praça Central do Bairro', x: 65, y: 40, description: 'Área residencial arborizada' },
+  { id: 'p4', name: 'Destino (Residência/Metrô)', x: 90, y: 18, description: 'Ponto final do trajeto' },
 ];
 
 export const DEMO_ZONES: DemoZone[] = [
   {
     id: 'zone-corridor',
-    name: 'Corredor Seguro (Demo)',
+    name: 'Corredor Seguro (Bairro)',
     type: 'safe_corridor',
-    description: 'Iluminação reforçada e totens ilustrativos',
+    description: 'Via com iluminação pública e movimentação',
     polygon: [[10, 85], [35, 75], [45, 50], [20, 60]],
   },
   {
     id: 'zone-caution',
-    name: 'Zona de Demonstração C (Atenção)',
+    name: 'Trecho com Atenção (Bairro)',
     type: 'caution_area',
-    description: 'Trecho com obras simuladas no campus',
+    description: 'Rua residencial com menor iluminação à noite',
     polygon: [[55, 50], [80, 45], [85, 25], [60, 30]],
   },
 ];
@@ -57,8 +57,8 @@ export const MEDIA_CATALOG: CatalogMedia[] = [
   {
     id: 'foto-1',
     kind: 'photo',
-    title: 'Fachada Próxima',
-    caption: 'Foto de contexto: fachada de edifício acadêmico',
+    title: 'Fachada Residencial',
+    caption: 'Foto de contexto: fachada de casa no bairro',
     url: '/assets/foto-1.svg',
     license: 'Licença aberta / Ativo sintético educacional',
     source: 'mock-campus-asset',
@@ -67,8 +67,8 @@ export const MEDIA_CATALOG: CatalogMedia[] = [
   {
     id: 'foto-2',
     kind: 'photo',
-    title: 'Caminho Percorrido',
-    caption: 'Foto de contexto: calçada iluminada da passarela',
+    title: 'Calçada da Av. Brasil',
+    caption: 'Foto de contexto: calçada iluminada com postes',
     url: '/assets/foto-2.svg',
     license: 'Licença aberta / Ativo sintético educacional',
     source: 'mock-campus-asset',
@@ -77,8 +77,8 @@ export const MEDIA_CATALOG: CatalogMedia[] = [
   {
     id: 'foto-3',
     kind: 'photo',
-    title: 'Pátio Central',
-    caption: 'Foto de contexto: visão panorâmica do pátio',
+    title: 'Praça do Bairro',
+    caption: 'Foto de contexto: visão panorâmica da praça',
     url: '/assets/foto-3.svg',
     license: 'Licença aberta / Ativo sintético educacional',
     source: 'mock-campus-asset',
@@ -87,8 +87,8 @@ export const MEDIA_CATALOG: CatalogMedia[] = [
   {
     id: 'foto-4',
     kind: 'photo',
-    title: 'Portaria de Acesso',
-    caption: 'Foto de contexto: guarita e portão de acesso',
+    title: 'Entrada do Destino',
+    caption: 'Foto de contexto: portão residencial de chegada',
     url: '/assets/foto-4.svg',
     license: 'Licença aberta / Ativo sintético educacional',
     source: 'mock-campus-asset',
