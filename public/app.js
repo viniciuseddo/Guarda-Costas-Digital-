@@ -452,8 +452,12 @@ function renderOwnerScreen(run) {
   // Alerta em andamento
   if (run.incident?.status === 'alert') {
     alertBanner.style.display = 'flex';
-    document.getElementById('owner-alert-desc').textContent =
-      `Motivo: ${run.incident.reason}. Evidências enviadas ao familiar.`;
+    const isDeadline = run.incident.reason.toLowerCase().includes('prazo');
+    const alertDetail = isDeadline
+      ? `Motivo: Prazo de segurança vencido. Geolocalização em tempo real, fotos com timestamp e áudio ambiental de 12s transmitidos com sucesso ao familiar e à central policial simulada.`
+      : `Motivo: ${run.incident.reason}. Evidências e geolocalização em tempo real enviadas ao familiar.`;
+
+    document.getElementById('owner-alert-desc').textContent = alertDetail;
 
     if (run.mode === 'sound' && run.soundEnabled) {
       document.getElementById('siren-container').style.display = 'block';
@@ -484,8 +488,11 @@ function renderFamilyScreen(run) {
   // Alerta
   if (run.incident && (run.incident.status === 'alert' || run.incident.status === 'checking')) {
     alertCard.style.display = 'flex';
-    document.getElementById('family-alert-reason').textContent = run.incident.reason;
-    document.getElementById('family-alert-time').textContent = `T + ${run.incident.at}s do cenário`;
+    const isDeadline = run.incident.reason.toLowerCase().includes('prazo');
+    document.getElementById('family-alert-reason').textContent = isDeadline
+      ? `${run.incident.reason}. Evidências, geolocalização e áudio enviados à polícia e familiar.`
+      : run.incident.reason;
+    document.getElementById('family-alert-time').textContent = `T + ${formatSeconds(run.incident.at)} do cenário (ao vivo)`;
 
     if (run.incident.acknowledged) {
       ackStatus.style.display = 'block';
@@ -532,18 +539,22 @@ function renderEvidenceGrid(run) {
       item.status === 'sending' ? '⏳ Enviando...' :
       item.status === 'failed' ? '❌ Falha de Envio' : 'Pendente';
 
+    const itemTimeStr = formatSeconds(item.at || 0);
+
     if (item.kind === 'photo') {
       const asset = MEDIA_CATALOG.find(m => m.id === item.id.split('-').slice(-2).join('-')) || MEDIA_CATALOG[0];
       card.innerHTML = `
         <div style="font-weight: bold;">${item.label}</div>
         <img class="media-thumbnail" src="${asset.url}" alt="${item.label}">
+        <div style="font-size: 0.75rem; color: var(--text-muted);">⏱️ Timestamp: T+${itemTimeStr}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">📍 Geo: -23.5505, -46.6333</div>
         <div>Status: <strong>${statusLabel}</strong></div>
-        ${item.status === 'available' ? `<button class="btn btn-secondary" style="min-height: 36px; padding: 4px; font-size: 0.75rem;">Ver Foto</button>` : ''}
+        ${item.status === 'available' ? `<button class="btn btn-secondary" style="min-height: 36px; padding: 4px; font-size: 0.75rem;">Ver Foto & Detalhes</button>` : ''}
         ${item.status === 'failed' ? `<button class="btn btn-warning btn-retry" style="min-height: 36px; padding: 4px; font-size: 0.75rem;">Repetir Envio</button>` : ''}
       `;
 
       if (item.status === 'available') {
-        card.querySelector('button')?.addEventListener('click', () => openPhotoModal(asset));
+        card.querySelector('button')?.addEventListener('click', () => openPhotoModal(asset, item));
       }
       if (item.status === 'failed') {
         card.querySelector('.btn-retry')?.addEventListener('click', () => sendCommand('media-retry', { id: item.id }));
@@ -553,6 +564,8 @@ function renderEvidenceGrid(run) {
       card.innerHTML = `
         <div style="font-weight: bold;">${item.label} (12s)</div>
         <div class="media-thumbnail" style="font-size: 1.5rem;">🎙️</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">⏱️ Timestamp: T+${itemTimeStr}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">📍 Geo: -23.5505, -46.6333</div>
         <div>Status: <strong>${statusLabel}</strong></div>
         ${item.status === 'failed' ? `<button class="btn btn-warning btn-retry" style="min-height: 36px; padding: 4px; font-size: 0.75rem;">Repetir Envio</button>` : ''}
       `;
@@ -568,10 +581,11 @@ function renderEvidenceGrid(run) {
 }
 
 // Modal de Foto
-function openPhotoModal(asset) {
+function openPhotoModal(asset, item) {
   document.getElementById('modal-photo-title').textContent = asset.title;
   document.getElementById('modal-photo-img').src = asset.url;
-  document.getElementById('modal-photo-caption').textContent = asset.caption;
+  const timeInfo = item ? ` • Registrado em T+${formatSeconds(item.at || 0)} (-23.5505, -46.6333)` : '';
+  document.getElementById('modal-photo-caption').textContent = `${asset.caption}${timeInfo}`;
   document.getElementById('modal-photo').style.display = 'flex';
 }
 
@@ -589,10 +603,10 @@ function renderPoliceStatus(run) {
   document.getElementById('police-ref-display').textContent = p.reference;
 
   const stageMap = {
-    preparing: 'Preparando pacote de contexto...',
-    calling: 'Chamada simulada em andamento...',
-    sending: 'Transmitindo pacote de dados simulados...',
-    received: 'Pacote recebido na simulação (Concluído)',
+    preparing: 'Preparando pacote de contexto com geolocalização e fotos...',
+    calling: 'Transmitindo pacote seguro à central simulada...',
+    sending: 'Enviando telemetria em tempo real, fotos com timestamp e áudio...',
+    received: 'Pacote completo recebido pela central simulada (Concluído)',
     failed: 'Falha na transmissão fictícia',
   };
 
@@ -608,8 +622,8 @@ function openPoliceModal() {
   if (!run || !run.incident) return;
 
   document.getElementById('police-preview-reason').textContent = run.incident.reason;
-  document.getElementById('police-preview-pos').textContent = `Passarela dos Estudantes (Coord: X=${Math.round(run.position.x)}, Y=${Math.round(run.position.y)})`;
-  document.getElementById('police-preview-time').textContent = `T + ${run.incident.at}s do cenário`;
+  document.getElementById('police-preview-pos').textContent = `Praça Central / Bairro (-23.5505, -46.6333 • X=${Math.round(run.position.x)}, Y=${Math.round(run.position.y)})`;
+  document.getElementById('police-preview-time').textContent = `T + ${formatSeconds(run.incident.at)} do cenário (ao vivo)`;
 
   const list = document.getElementById('police-preview-evidence-list');
   list.innerHTML = '';
@@ -617,7 +631,7 @@ function openPoliceModal() {
   for (const e of run.incident.evidence) {
     const div = document.createElement('div');
     const checked = e.status === 'available' ? 'checked' : '';
-    const note = e.status === 'pending' ? '(Envio pendente)' : e.status === 'failed' ? '(Falhou)' : '(Disponível)';
+    const note = e.status === 'pending' ? '(Envio pendente)' : e.status === 'failed' ? '(Falhou)' : `(Disponível • T+${formatSeconds(e.at || 0)})`;
     div.innerHTML = `
       <label style="flex-direction: row; align-items: center; gap: 8px;">
         <input type="checkbox" value="${e.id}" ${checked}>
@@ -683,13 +697,32 @@ function formatEventKind(kind) {
   return map[kind] || kind;
 }
 
+// Helper para obter coordenadas (x, y) reais ao longo dos waypoints da rota
+function getPositionOnRoute(progress) {
+  const points = CAMPUS_ROUTE;
+  if (!points || points.length === 0) return { x: 50, y: 50 };
+  const p = Math.max(0, Math.min(1, progress));
+  const totalSegments = points.length - 1;
+  const segIndex = Math.min(Math.floor(p * totalSegments), totalSegments - 1);
+  const segProgress = (p - (segIndex / totalSegments)) * totalSegments;
+
+  const start = points[segIndex];
+  const end = points[segIndex + 1];
+
+  return {
+    x: (start.x + (end.x - start.x) * segProgress) * 5,
+    y: (start.y + (end.y - start.y) * segProgress) * 2.5,
+  };
+}
+
 // MAPA VETORIAL ILUSTRATIVO INTERATIVO (Reqs 5.1 - 5.4)
 function renderMap(elementId, run) {
   const container = document.getElementById(elementId);
   if (!container) return;
 
   const points = CAMPUS_ROUTE;
-  const pos = run.position || { x: 0, y: 0 };
+  const progress = run.eta > 0 ? Math.min(1, run.elapsed / run.eta) : 0;
+  const markerCoord = getPositionOnRoute(progress);
   const routePath = points.map(p => `${p.x * 5},${p.y * 2.5}`).join(' L ');
 
   // SVG interativo com zonas de demonstração e percurso
@@ -714,18 +747,21 @@ function renderMap(elementId, run) {
       <!-- Linha do trajeto planejado -->
       <path d="M ${routePath}" fill="none" stroke="#64748b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-      <!-- Pontos de referência do campus -->
+      <!-- Pontos de referência do bairro -->
       ${points.map((p, i) => `
         <circle cx="${p.x * 5}" cy="${p.y * 2.5}" r="5" fill="#334155" />
         <text x="${p.x * 5}" y="${p.y * 2.5 - 9}" font-size="10" fill="#0f172a" font-weight="600" text-anchor="middle">${p.name}</text>
       `).join('')}
 
-      <!-- Marcador de posição atual -->
-      <g transform="translate(${pos.x * 5}, ${Math.max(10, Math.min(240, 150 + pos.y * 2))})">
-        <circle r="12" fill="${run.incident?.status === 'alert' ? '#ef4444' : '#2563eb'}" opacity="0.3">
-          <animate attributeName="r" values="8;16;8" dur="2s" repeatCount="indefinite"/>
+      <!-- Marcador de posição atual em tempo real seguindo a rota -->
+      <g transform="translate(${markerCoord.x}, ${markerCoord.y})" style="transition: transform 0.5s ease-out;">
+        <circle r="14" fill="${run.incident?.status === 'alert' ? '#ef4444' : '#2563eb'}" opacity="0.3">
+          <animate attributeName="r" values="8;18;8" dur="1.5s" repeatCount="indefinite"/>
         </circle>
-        <circle r="7" fill="${run.incident?.status === 'alert' ? '#dc2626' : '#1d4ed8'}" stroke="#ffffff" stroke-width="2"/>
+        <circle r="7" fill="${run.incident?.status === 'alert' ? '#dc2626' : '#1d4ed8'}" stroke="#ffffff" stroke-width="2.5"/>
+        <text y="-11" font-size="9" fill="#0f172a" font-weight="bold" text-anchor="middle">
+          ${run.incident?.status === 'alert' ? '⚠️ ALERTA' : '🚶 Alex'}
+        </text>
       </g>
     </svg>
   `;
@@ -735,7 +771,7 @@ function renderMap(elementId, run) {
   // Atualiza label da posição
   const posLabel = document.getElementById(`${elementId}-pos`);
   if (posLabel) {
-    posLabel.textContent = run.position.x > 80 ? 'Chegando ao Destino (Residência)' : run.position.x > 40 ? 'Praça Central do Bairro' : 'Rua das Flores (Saída)';
+    posLabel.textContent = progress >= 0.85 ? 'Destino (Residência)' : progress >= 0.55 ? 'Praça Central do Bairro' : progress >= 0.25 ? 'Av. Brasil (Iluminada)' : 'Rua das Flores (Saída)';
   }
 }
 
